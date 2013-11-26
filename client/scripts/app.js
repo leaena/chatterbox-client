@@ -1,13 +1,14 @@
 // YOUR CODE HERE:
-// var message = {
-//   'username': grabUsername(),
-//   'text': '<script>console.log("Lindsey was here")</script>',
-//   'roomname': '4chan'
-// };
 var rooms = {};
 var currentRoom;
 var currentRoomUrl;
 var friends = [];
+
+/*** HELPER FUNCTIONS ***/
+var getRoom = function(room){
+  currentRoom = room;
+  currentRoomUrl ='&where={"roomname":"' + room + '"}';
+}
 
 var grabUsername = function(){
   var re = new RegExp(/(&|\?)username=/);
@@ -15,6 +16,14 @@ var grabUsername = function(){
   return string.replace(re, "");
 }
 
+var sanitize = function(string){
+  var re = new RegExp(/(<([^>]+)>)/ig);
+  var string = string || "";
+  return string.replace(re, "");
+}
+
+
+/*** CRUD FUNCTIONS ***/
 var postMessage = function(message){
   $.ajax({
     // always use this url
@@ -24,7 +33,6 @@ var postMessage = function(message){
     contentType: 'application/json',
     success: function (data) {
       console.log('chatterbox: Message sent');
-      console.log(data);
     },
     error: function (data) {
       // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -35,37 +43,23 @@ var postMessage = function(message){
 
 var retrievePost = function(){
   $.ajax({
-  // always use this url
-  url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
-  type: 'GET',
-  contentType: 'application/json',
-  success: function (data) {
-    console.log(data);
-    $('.chat').empty();
-    $.each(data.results, function(i, item){
-      $('.chat').append(renderMessage(item));
-      // get rooms
-      rooms[item.roomname] = true;
-    });
-  },
-  error: function (data) {
-    // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
-    console.error('chatterbox: Failed to send message');
-  }
-});
-}
-
-var getRoom = function(room){
-
-  currentRoom = room;
-  currentRoomUrl ='&where={"roomname":"' + room + '"}';
-}
-
-var sanitize = function(string){
-  var re = new RegExp(/</gi);
-  var string = string || "";
-  string = string.replace(re, "");
-  return string.replace(/$/gi, "");
+    // always use this url
+    url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
+    type: 'GET',
+    contentType: 'application/json',
+    success: function (data) {
+      $('.chat').empty();
+      $.each(data.results, function(i, item){
+        $('.chat').append(renderMessage(item));
+        // get rooms
+        rooms[item.roomname] = true;
+      });
+    },
+    error: function (data) {
+      // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
+      console.error('chatterbox: Failed to send message');
+    }
+  });
 }
 
 var renderMessage = function(message){
@@ -77,14 +71,17 @@ var renderMessage = function(message){
   }
   return "<div class='message'>" + "<span class='username'>" + (userText || sanitize(message.username)) + "</span>" + ": " + "<span class='text'>" + (messageText || sanitize(message.text)) + "</span>" + "</div>";
 };
-$( document ).ready(function() {
+
+/*** EVENT LISTENERS ***/
+$(document).ready(function() {
+  // new message retrieval
+  setInterval(retrievePost, 1000);
 
   // render rooms
   setInterval(function(){
     $('ul').empty();
     $.each(Object.keys(rooms), function(i, room){
       var link = '<li><a class="roomname">' + room + "</a></li>";
-
       $(".rooms").append(link);
     });
   }, 1000);
@@ -99,15 +96,14 @@ $( document ).ready(function() {
     var room = prompt("What do you want to call this room?");
     rooms[room] = true;
   })
+
   //reset rooms
   $('h1').on('click', function(){
     currentRoomUrl = undefined;
   });
 
   $('.chat').on('click', '.username', function(){
-    console.log($(this).text());
     friends.push($(this).text());
-    console.log(friends);
   });
 
   // user message submit
@@ -122,8 +118,4 @@ $( document ).ready(function() {
     postMessage(messageObject);
     $('.userMessage').val("");
   });
-
-  // new message retrieval
-  setInterval(retrievePost, 1000);
 });
-// postMessage(message);
