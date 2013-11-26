@@ -1,4 +1,4 @@
-// YOUR CODE HERE:
+var events = _.clone(Backbone.Events);
 var rooms = {};
 var currentRoom;
 var currentRoomUrl;
@@ -19,7 +19,6 @@ var grabUsername = function(){
 }
 
 var sanitize = function(string){
-  // var re = new RegExp(/(<([^>]+)>)/ig);
   var re = new RegExp(/[^.!?\s][^.!?]*(?:[.!?](?!['"]?\s|$)[^.!?]*)*[.!?]?['"]?(?=\s|$)/);
   var string = string || "";
   if(string.length > 160){
@@ -29,7 +28,6 @@ var sanitize = function(string){
 }
 var sanitizeRoom = function(string){
   var re = new RegExp(/(<([^>]+)>)/ig);
-  // var re = new RegExp(/[^.!?\s][^.!?]*(?:[.!?](?!['"]?\s|$)[^.!?]*)*[.!?]?['"]?(?=\s|$)/);
   var string = string || "";
   if(string.length > 160){
     string = string.slice(0,159);
@@ -93,6 +91,10 @@ var renderMessage = function(message){
 var NewChatView = function(options){
   // user message submit
   this.chat = options.chat;
+
+  events.on('chat:get', this.clearMessages, this);
+  events.on('chat:get', this.appendMessages, this);
+
   var addMessage = $.proxy(this.addMessage, this);
   var getMessages = $.proxy(this.getMessages, this);
   $('.submit').on('click', addMessage);
@@ -114,12 +116,10 @@ NewChatView.prototype.addMessage = function(){
 };
 
 NewChatView.prototype.getMessages = function(){
-  var that = this;
 
   this.chat.get({
     success: function (data) {
-      that.clearMessages();
-      that.appendMessages(data);
+      events.trigger('chat:get', data);
     }
   });
 }
