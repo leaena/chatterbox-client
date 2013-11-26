@@ -7,6 +7,7 @@
 var rooms = {};
 var currentRoom;
 var currentRoomUrl;
+var friends = [];
 
 var grabUsername = function(){
   var re = new RegExp(/(&|\?)username=/);
@@ -68,7 +69,13 @@ var sanitize = function(string){
 }
 
 var renderMessage = function(message){
-  return "<div class='message'>" + "<span class='username'>" +sanitize(message.username) + "</span>" + ": " + "<span class='text'>" + sanitize(message.text) + "</span>" + "</div>";
+  var userText;
+  var messageText;
+  if(friends.indexOf(message.username) !== -1){
+    userText = "<strong>" + sanitize(message.username) + "</strong>";
+    messageText = "<strong>" + sanitize(message.text) + "</strong>";
+  }
+  return "<div class='message'>" + "<span class='username'>" + (userText || sanitize(message.username)) + "</span>" + ": " + "<span class='text'>" + (messageText || sanitize(message.text)) + "</span>" + "</div>";
 };
 $( document ).ready(function() {
 
@@ -92,6 +99,16 @@ $( document ).ready(function() {
     var room = prompt("What do you want to call this room?");
     rooms[room] = true;
   })
+  //reset rooms
+  $('h1').on('click', function(){
+    currentRoomUrl = undefined;
+  });
+
+  $('.chat').on('click', '.username', function(){
+    console.log($(this).text());
+    friends.push($(this).text());
+    console.log(friends);
+  });
 
   // user message submit
   $('.submit').on('click', function(){
