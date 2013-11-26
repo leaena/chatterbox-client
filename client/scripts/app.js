@@ -19,6 +19,9 @@ var grabUsername = function(){
 var sanitize = function(string){
   var re = new RegExp(/(<([^>]+)>)/ig);
   var string = string || "";
+  if(string.length > 160){
+    string = string.slice(0,159);
+  }
   return string.replace(re, "");
 }
 
