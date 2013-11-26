@@ -34,7 +34,7 @@ var sanitizeRoom = function(string){
   if(string.length > 160){
     string = string.slice(0,159);
   }
-  return string.match(re);
+  return string.replace(re, "");
 }
 
 
@@ -44,6 +44,7 @@ var sanitizeRoom = function(string){
 var Chat = function(){
 
 };
+
 Chat.prototype.post = function(options){
   $.ajax({
     // always use this url
@@ -83,6 +84,31 @@ var renderMessage = function(message){
     messageText = "<strong>" + sanitize(message.text) + "</strong>";
   }
   return "<div class='message'>" + "<span class='username'>" + (userText || sanitize(message.username)) + "</span>" + ": " + "<span class='text'>" + (messageText || sanitize(message.text)) + "</span>" + "</div>";
+};
+
+
+/*
+* VIEWS
+*/
+var NewChatView = function(options){
+  // user message submit
+  this.chat = options.chat;
+  var addMessage = $.proxy(this.addMessage, this);
+  $('.submit').on('click', addMessage);
+}
+
+NewChatView.prototype.addMessage = function(){
+  var message = $('.userMessage').val();
+  var username = grabUsername();
+  var messageObject = {
+    'username': username,
+    'text': message,
+    'roomname': (currentRoom || '')
+  };
+  this.chat.post({
+    data: JSON.stringify(messageObject)
+  });
+  $('.userMessage').val("");
 };
 
 /*
@@ -136,19 +162,5 @@ $(document).ready(function() {
   $('.chat').on('click', '.username', function(){
     friends.push($(this).text());
   });
-
-  // user message submit
-  $('.submit').on('click', function(){
-    var message = $('.userMessage').val();
-    var username = grabUsername();
-    var messageObject = {
-      'username': username,
-      'text': message,
-      'roomname': (currentRoom || '')
-    };
-    chat.post({
-      data: JSON.stringify(messageObject)
-    });
-    $('.userMessage').val("");
-  });
+  new NewChatView({chat: chat});
 });
