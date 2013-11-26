@@ -43,12 +43,12 @@ var Chat = function(){
 
 };
 
-Chat.prototype.post = function(options){
+Chat.prototype.post = function(text){
   $.ajax({
     // always use this url
     url: 'https://api.parse.com/1/classes/chatterbox',
     type: 'POST',
-    data: options.data,
+    data: text,
     contentType: 'application/json',
     success: function (data) {
       console.log('chatterbox: Message sent');
@@ -60,13 +60,15 @@ Chat.prototype.post = function(options){
   });
 }
 
-Chat.prototype.get = function(options){
+Chat.prototype.get = function(){
   $.ajax({
     // always use this url
     url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
     type: 'GET',
     contentType: 'application/json',
-    success: options.success,
+    success: function(data){
+      events.trigger('chat:get', data);
+    },
     error: function (data) {
       // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
       console.error('chatterbox: Failed to send message');
@@ -91,14 +93,13 @@ var renderMessage = function(message){
 var NewChatView = function(options){
   // user message submit
   this.chat = options.chat;
-
+  var that = this;
   events.on('chat:get', this.clearMessages, this);
   events.on('chat:get', this.appendMessages, this);
 
   var addMessage = $.proxy(this.addMessage, this);
-  var getMessages = $.proxy(this.getMessages, this);
   $('.submit').on('click', addMessage);
-  setInterval(getMessages, 1000);
+  setInterval(function(){that.chat.get();}, 1000);
 }
 
 NewChatView.prototype.addMessage = function(){
@@ -109,20 +110,9 @@ NewChatView.prototype.addMessage = function(){
     'text': message,
     'roomname': (currentRoom || '')
   };
-  this.chat.post({
-    data: JSON.stringify(messageObject)
-  });
+  this.chat.post(JSON.stringify(messageObject));
   $('.userMessage').val("");
 };
-
-NewChatView.prototype.getMessages = function(){
-
-  this.chat.get({
-    success: function (data) {
-      events.trigger('chat:get', data);
-    }
-  });
-}
 
 NewChatView.prototype.clearMessages = function(){
   $('.chat').empty();
