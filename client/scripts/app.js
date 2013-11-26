@@ -4,7 +4,9 @@ var currentRoom;
 var currentRoomUrl;
 var friends = [];
 
-/*** HELPER FUNCTIONS ***/
+/*
+* HELPER FUNCTIONS
+*/
 var getRoom = function(room){
   currentRoom = room;
   currentRoomUrl ='&where={"roomname":"' + room + '"}';
@@ -17,7 +19,8 @@ var grabUsername = function(){
 }
 
 var sanitize = function(string){
-  var re = new RegExp(/(<([^>]+)>)/ig);
+  // var re = new RegExp(/(<([^>]+)>)/ig);
+  var re = new RegExp(/\W/g);
   var string = string || "";
   if(string.length > 160){
     string = string.slice(0,159);
@@ -26,13 +29,15 @@ var sanitize = function(string){
 }
 
 
-/*** CRUD FUNCTIONS ***/
-var postMessage = function(message){
+/*
+* CRUD FUNCTIONS
+*/
+var postMessage = function(options){
   $.ajax({
     // always use this url
     url: 'https://api.parse.com/1/classes/chatterbox',
     type: 'POST',
-    data: JSON.stringify(message),
+    data: options.data,
     contentType: 'application/json',
     success: function (data) {
       console.log('chatterbox: Message sent');
@@ -44,22 +49,13 @@ var postMessage = function(message){
   });
 }
 
-var retrievePost = function(){
+var retrievePost = function(options){
   $.ajax({
     // always use this url
     url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
     type: 'GET',
     contentType: 'application/json',
-    success: function (data) {
-      $('.chat').empty();
-      $.each(data.results, function(i, item){
-        $('.chat').append(renderMessage(item));
-        // get rooms
-        if(item.roomname && sanitize(item.roomname) === item.roomname){
-          rooms[item.roomname] = true;
-        }
-      });
-    },
+    success: options.success,
     error: function (data) {
       // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
       console.error('chatterbox: Failed to send message');
@@ -77,10 +73,25 @@ var renderMessage = function(message){
   return "<div class='message'>" + "<span class='username'>" + (userText || sanitize(message.username)) + "</span>" + ": " + "<span class='text'>" + (messageText || sanitize(message.text)) + "</span>" + "</div>";
 };
 
-/*** EVENT LISTENERS ***/
+/*
+* EVENT LISTENERS
+*/
 $(document).ready(function() {
   // new message retrieval
-  setInterval(retrievePost, 1000);
+  setInterval(function() {
+    retrievePost({
+      success: function (data) {
+        $('.chat').empty();
+        $.each(data.results, function(i, item){
+          $('.chat').append(renderMessage(item));
+          // get rooms
+          if(item.roomname && sanitize(item.roomname) === item.roomname){
+            rooms[item.roomname] = true;
+          }
+        });
+      }
+    })
+  }, 1000);
 
   // render rooms
   setInterval(function(){
@@ -122,7 +133,9 @@ $(document).ready(function() {
       'text': message,
       'roomname': (currentRoom || '')
     };
-    postMessage(messageObject);
+    postMessage({
+      data: JSON.stringify(messageObject)
+    });
     $('.userMessage').val("");
   });
 });
