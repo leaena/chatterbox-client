@@ -4,6 +4,9 @@
 //   'text': '<script>console.log("Lindsey was here")</script>',
 //   'roomname': '4chan'
 // };
+var rooms = {};
+var currentRoom;
+var currentRoomUrl;
 
 var grabUsername = function(){
   var re = new RegExp(/(&|\?)username=/);
@@ -32,7 +35,7 @@ var postMessage = function(message){
 var retrievePost = function(){
   $.ajax({
   // always use this url
-  url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20',
+  url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
   type: 'GET',
   contentType: 'application/json',
   success: function (data) {
@@ -40,6 +43,8 @@ var retrievePost = function(){
     $('.chat').empty();
     $.each(data.results, function(i, item){
       $('.chat').append(renderMessage(item));
+      // get rooms
+      rooms[item.roomname] = true;
     });
   },
   error: function (data) {
@@ -47,6 +52,12 @@ var retrievePost = function(){
     console.error('chatterbox: Failed to send message');
   }
 });
+}
+
+var getRoom = function(room){
+
+  currentRoom = room;
+  currentRoomUrl ='&where={"roomname":"' + room + '"}';
 }
 
 var sanitize = function(string){
@@ -59,6 +70,21 @@ var renderMessage = function(message){
   return "<div class='message'>" + "<span class='username'>" +message.username + "</span>" + ": " + "<span class='text'>" +sanitize(message.text) + "</span>" + "</div>";
 };
 $( document ).ready(function() {
+  // render rooms
+  setInterval(function(){    
+    $('ul').empty();
+    $.each(Object.keys(rooms), function(i, room){
+    var link = '<li><a class="roomname">' + room + "</a></li>";
+
+    $(".rooms").append(link);
+  });
+}, 1000);
+
+  $('ul').on('click', 'a', function(){
+    //event.preventDefault();
+    getRoom($(this).text());
+  })
+
   $('button').on('click', function(){
     var message = $('.userMessage').val();
 
@@ -66,7 +92,7 @@ $( document ).ready(function() {
     var messageObject = {
       'username': username,
       'text': message,
-      'room': '4chan'
+      'roomname': (currentRoom || '')
     };
     postMessage(messageObject);
     $('.userMessage').val("");
