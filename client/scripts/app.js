@@ -90,7 +90,7 @@ $(document).ready(function() {
 
   // room entry
   $('ul').on('click', 'a', function(){
-    $('h1').append(" - " + $(this).text());
+    $('.roomTitle').text(" - " + $(this).text());
     getRoom($(this).text());
   })
 
@@ -102,7 +102,7 @@ $(document).ready(function() {
 
   //reset rooms
   $('h1').on('click', function(){
-    $('h1').text("Chat-Client");
+    $('.roomTitle').text('');
     currentRoomUrl = undefined;
   });
 
