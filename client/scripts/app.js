@@ -52,7 +52,9 @@ var retrievePost = function(){
       $.each(data.results, function(i, item){
         $('.chat').append(renderMessage(item));
         // get rooms
-        rooms[item.roomname] = true;
+        if(item.roomname && sanitize(item.roomname) === item.roomname){
+          rooms[item.roomname] = true;
+        }
       });
     },
     error: function (data) {
@@ -88,6 +90,7 @@ $(document).ready(function() {
 
   // room entry
   $('ul').on('click', 'a', function(){
+    $('h1').append(" - " + $(this).text());
     getRoom($(this).text());
   })
 
@@ -99,6 +102,7 @@ $(document).ready(function() {
 
   //reset rooms
   $('h1').on('click', function(){
+    $('h1').text("Chat-Client");
     currentRoomUrl = undefined;
   });
 
