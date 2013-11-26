@@ -114,16 +114,26 @@ NewChatView.prototype.addMessage = function(){
 };
 
 NewChatView.prototype.getMessages = function(){
+  var that = this;
+
   this.chat.get({
     success: function (data) {
-      $('.chat').empty();
-      $.each(data.results, function(i, item){
-        $('.chat').append(renderMessage(item));
-        // get rooms
-        if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
-          rooms[item.roomname] = true;
-        }
-      });
+      that.clearMessages();
+      that.appendMessages(data);
+    }
+  });
+}
+
+NewChatView.prototype.clearMessages = function(){
+  $('.chat').empty();
+}
+
+NewChatView.prototype.appendMessages =  function(data){
+  $.each(data.results, function(i, item){
+    $('.chat').append(renderMessage(item));
+    // get rooms
+    if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
+      rooms[item.roomname] = true;
     }
   });
 }
