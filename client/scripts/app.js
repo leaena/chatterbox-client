@@ -63,31 +63,39 @@ var getRoom = function(room){
 var sanitize = function(string){
   var re = new RegExp(/</gi);
   var string = string || "";
-  return string.replace(re, "");
+  string = string.replace(re, "");
+  return string.replace(/$/gi, "");
 }
 
 var renderMessage = function(message){
-  return "<div class='message'>" + "<span class='username'>" +message.username + "</span>" + ": " + "<span class='text'>" +sanitize(message.text) + "</span>" + "</div>";
+  return "<div class='message'>" + "<span class='username'>" +sanitize(message.username) + "</span>" + ": " + "<span class='text'>" + sanitize(message.text) + "</span>" + "</div>";
 };
 $( document ).ready(function() {
+
   // render rooms
-  setInterval(function(){    
+  setInterval(function(){
     $('ul').empty();
     $.each(Object.keys(rooms), function(i, room){
-    var link = '<li><a class="roomname">' + room + "</a></li>";
+      var link = '<li><a class="roomname">' + room + "</a></li>";
 
-    $(".rooms").append(link);
-  });
-}, 1000);
+      $(".rooms").append(link);
+    });
+  }, 1000);
 
+  // room entry
   $('ul').on('click', 'a', function(){
-    //event.preventDefault();
     getRoom($(this).text());
   })
 
-  $('button').on('click', function(){
-    var message = $('.userMessage').val();
+  // create room
+  $('.newRoom').on('click', function(){
+    var room = prompt("What do you want to call this room?");
+    rooms[room] = true;
+  })
 
+  // user message submit
+  $('.submit').on('click', function(){
+    var message = $('.userMessage').val();
     var username = grabUsername();
     var messageObject = {
       'username': username,
@@ -98,6 +106,7 @@ $( document ).ready(function() {
     $('.userMessage').val("");
   });
 
+  // new message retrieval
   setInterval(retrievePost, 1000);
 });
 // postMessage(message);
