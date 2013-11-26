@@ -94,7 +94,9 @@ var NewChatView = function(options){
   // user message submit
   this.chat = options.chat;
   var addMessage = $.proxy(this.addMessage, this);
+  var getMessages = $.proxy(this.getMessages, this);
   $('.submit').on('click', addMessage);
+  setInterval(getMessages, 1000);
 }
 
 NewChatView.prototype.addMessage = function(){
@@ -111,26 +113,28 @@ NewChatView.prototype.addMessage = function(){
   $('.userMessage').val("");
 };
 
+NewChatView.prototype.getMessages = function(){
+  this.chat.get({
+    success: function (data) {
+      $('.chat').empty();
+      $.each(data.results, function(i, item){
+        $('.chat').append(renderMessage(item));
+        // get rooms
+        if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
+          rooms[item.roomname] = true;
+        }
+      });
+    }
+  });
+}
+
 /*
 * EVENT LISTENERS
 */
 $(document).ready(function() {
   // new message retrieval
   var chat = new Chat();
-  setInterval(function() {
-    chat.get({
-      success: function (data) {
-        $('.chat').empty();
-        $.each(data.results, function(i, item){
-          $('.chat').append(renderMessage(item));
-          // get rooms
-          if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
-            rooms[item.roomname] = true;
-          }
-        });
-      }
-    })
-  }, 1000);
+  new NewChatView({chat: chat});
 
   // render rooms
   setInterval(function(){
@@ -162,5 +166,5 @@ $(document).ready(function() {
   $('.chat').on('click', '.username', function(){
     friends.push($(this).text());
   });
-  new NewChatView({chat: chat});
+  
 });
