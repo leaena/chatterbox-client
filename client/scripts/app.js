@@ -20,19 +20,31 @@ var grabUsername = function(){
 
 var sanitize = function(string){
   // var re = new RegExp(/(<([^>]+)>)/ig);
-  var re = new RegExp(/\W/g);
+  var re = new RegExp(/[^.!?\s][^.!?]*(?:[.!?](?!['"]?\s|$)[^.!?]*)*[.!?]?['"]?(?=\s|$)/);
   var string = string || "";
   if(string.length > 160){
     string = string.slice(0,159);
   }
-  return string.replace(re, "");
+  return string.match(re);
+}
+var sanitizeRoom = function(string){
+  var re = new RegExp(/(<([^>]+)>)/ig);
+  // var re = new RegExp(/[^.!?\s][^.!?]*(?:[.!?](?!['"]?\s|$)[^.!?]*)*[.!?]?['"]?(?=\s|$)/);
+  var string = string || "";
+  if(string.length > 160){
+    string = string.slice(0,159);
+  }
+  return string.match(re);
 }
 
 
 /*
 * CRUD FUNCTIONS
 */
-var postMessage = function(options){
+var Chat = function(){
+
+};
+Chat.prototype.post = function(options){
   $.ajax({
     // always use this url
     url: 'https://api.parse.com/1/classes/chatterbox',
@@ -49,7 +61,7 @@ var postMessage = function(options){
   });
 }
 
-var retrievePost = function(options){
+Chat.prototype.get = function(options){
   $.ajax({
     // always use this url
     url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
@@ -78,14 +90,15 @@ var renderMessage = function(message){
 */
 $(document).ready(function() {
   // new message retrieval
+  var chat = new Chat();
   setInterval(function() {
-    retrievePost({
+    chat.get({
       success: function (data) {
         $('.chat').empty();
         $.each(data.results, function(i, item){
           $('.chat').append(renderMessage(item));
           // get rooms
-          if(item.roomname && sanitize(item.roomname) === item.roomname){
+          if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
             rooms[item.roomname] = true;
           }
         });
@@ -133,7 +146,7 @@ $(document).ready(function() {
       'text': message,
       'roomname': (currentRoom || '')
     };
-    postMessage({
+    chat.post({
       data: JSON.stringify(messageObject)
     });
     $('.userMessage').val("");
