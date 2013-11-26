@@ -90,43 +90,49 @@ var renderMessage = function(message){
 /*
 * VIEWS
 */
-var NewChatView = function(options){
-  // user message submit
-  this.chat = options.chat;
-  var that = this;
-  events.on('chat:get', this.clearMessages, this);
-  events.on('chat:get', this.appendMessages, this);
+var NewChatView = Backbone.View.extend({
+  initialize: function(options){
+    // user message submit
+    this.chat = options.chat;
 
-  var addMessage = $.proxy(this.addMessage, this);
-  $('.submit').on('click', addMessage);
-  setInterval(function(){that.chat.get();}, 1000);
-}
+    var addMessage = $.proxy(this.addMessage, this);
+    $('.submit').on('click', addMessage);
+  },
+  addMessage: function(){
+    var message = $('.userMessage').val();
+    var username = grabUsername();
+    var messageObject = {
+      'username': username,
+      'text': message,
+      'roomname': (currentRoom || '')
+    };
+    this.chat.post(JSON.stringify(messageObject));
+    $('.userMessage').val("");
+  }
+})
 
-NewChatView.prototype.addMessage = function(){
-  var message = $('.userMessage').val();
-  var username = grabUsername();
-  var messageObject = {
-    'username': username,
-    'text': message,
-    'roomname': (currentRoom || '')
-  };
-  this.chat.post(JSON.stringify(messageObject));
-  $('.userMessage').val("");
-};
+var ChatView = Backbone.View.extend({
+  initialize: function(options){
+    this.chat = options.chat;
+    this.el = options.el;
+    var that = this;
 
-NewChatView.prototype.clearMessages = function(){
-  $('.chat').empty();
-}
+    events.on('chat:get', this.appendMessages, this);
 
-NewChatView.prototype.appendMessages =  function(data){
-  $.each(data.results, function(i, item){
-    $('.chat').append(renderMessage(item));
-    // get rooms
-    if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
-      rooms[item.roomname] = true;
-    }
-  });
-}
+    setInterval(function(){that.chat.get();}, 1000);
+  },
+  appendMessages: function(data){
+    var that = this;
+    this.el.empty();
+    $.each(data.results, function(i, item){
+      that.el.append(renderMessage(item));
+      // get rooms
+      if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
+        rooms[item.roomname] = true;
+      }
+    });
+  }
+});
 
 /*
 * EVENT LISTENERS
@@ -135,6 +141,7 @@ $(document).ready(function() {
   // new message retrieval
   var chat = new Chat();
   new NewChatView({chat: chat});
+  new ChatView({chat: chat, el: $('.chat')});
 
   // render rooms
   setInterval(function(){
