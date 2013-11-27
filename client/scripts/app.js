@@ -1,8 +1,19 @@
-var events = _.clone(Backbone.Events);
 var rooms = {};
 var currentRoom;
 var currentRoomUrl;
 var friends = [];
+var Chat = Backbone.Model.extend({
+  url: 'https://api.parse.com/1/classes/chatterbox',//?order=-createdAt&limit=20' + (currentRoomUrl || "");
+  receive: function(options){
+    $.ajax({
+      // always use this url
+      url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
+      type: 'GET',
+      contentType: 'application/json',
+      success: options.success
+    })
+  }
+});
 
 /*
 * HELPER FUNCTIONS
@@ -39,42 +50,18 @@ var sanitizeRoom = function(string){
 /*
 * CRUD FUNCTIONS
 */
-var Chat = function(){
-
-};
-
-Chat.prototype.post = function(text){
-  $.ajax({
-    // always use this url
-    url: 'https://api.parse.com/1/classes/chatterbox',
-    type: 'POST',
-    data: text,
-    contentType: 'application/json',
-    success: function (data) {
-      console.log('chatterbox: Message sent');
-    },
-    error: function (data) {
-      // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
-      console.error('chatterbox: Failed to send message');
-    }
-  });
-}
-
-Chat.prototype.get = function(){
-  $.ajax({
-    // always use this url
-    url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt&limit=20' + (currentRoomUrl || ""),
-    type: 'GET',
-    contentType: 'application/json',
-    success: function(data){
-      events.trigger('chat:get', data);
-    },
-    error: function (data) {
-      // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
-      console.error('chatterbox: Failed to send message');
-    }
-  });
-}
+var Chats = Backbone.Collection.extend({
+  model: Chat,
+  get: function(){
+    var chat = new Chat();
+    var that = this;
+    chat.receive({
+      success: function(data){
+        that.trigger('get', data);
+      }
+    });
+  }
+});
 
 var renderMessage = function(message){
   var userText;
@@ -90,13 +77,12 @@ var renderMessage = function(message){
 /*
 * VIEWS
 */
-var NewChatView = Backbone.View.extend({
-  initialize: function(options){
+var NewChatsView = Backbone.View.extend({
+  events: {
+    'click .submit': 'addMessage'
+  },
+  initialize: function(){
     // user message submit
-    this.chat = options.chat;
-
-    var addMessage = $.proxy(this.addMessage, this);
-    $('.submit').on('click', addMessage);
   },
   addMessage: function(){
     var message = $('.userMessage').val();
@@ -106,26 +92,24 @@ var NewChatView = Backbone.View.extend({
       'text': message,
       'roomname': (currentRoom || '')
     };
-    this.chat.post(JSON.stringify(messageObject));
+    this.collection.create(messageObject);
     $('.userMessage').val("");
   }
 })
 
-var ChatView = Backbone.View.extend({
-  initialize: function(options){
-    this.chat = options.chat;
-    this.el = options.el;
+var ChatsView = Backbone.View.extend({
+  initialize: function(){
     var that = this;
 
-    events.on('chat:get', this.appendMessages, this);
+    this.collection.on('get', this.appendMessages, this);
 
-    setInterval(function(){that.chat.get();}, 1000);
+    setInterval(function(){that.collection.get();}, 1000);
   },
   appendMessages: function(data){
     var that = this;
-    this.el.empty();
+    this.$('.chat').empty();
     $.each(data.results, function(i, item){
-      that.el.append(renderMessage(item));
+      that.$('.chat').append(renderMessage(item));
       // get rooms
       if(item.roomname && sanitizeRoom(item.roomname) === item.roomname){
         rooms[item.roomname] = true;
@@ -139,9 +123,9 @@ var ChatView = Backbone.View.extend({
 */
 $(document).ready(function() {
   // new message retrieval
-  var chat = new Chat();
-  new NewChatView({chat: chat});
-  new ChatView({chat: chat, el: $('.chat')});
+  var chats = new Chats();
+  new NewChatsView({collection: chats, el: $('.submit').parent()});
+  new ChatsView({collection: chats, el: $('.chatClient')});
 
   // render rooms
   setInterval(function(){
